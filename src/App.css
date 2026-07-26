@@ -1,0 +1,190 @@
+.app {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+.hint {
+  color: #7a6a54;
+  font-size: 16px;
+}
+
+.error-message {
+  color: #c0392b;
+  background: #fdecea;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin: 16px 0;
+}
+
+/* --- ボタン共通 --- */
+
+.primary-button,
+.secondary-button {
+  font-size: 22px;
+  font-weight: 700;
+  border: none;
+  border-radius: 999px;
+  padding: 18px 32px;
+  min-height: 64px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.primary-button {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 4px 0 var(--accent-dark);
+}
+
+.primary-button:disabled {
+  background: #d9c9b3;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.primary-button:not(:disabled):active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--accent-dark);
+}
+
+.secondary-button {
+  background: #fff;
+  color: var(--text);
+  border: 3px solid #e0d3bf;
+}
+
+/* --- Scan画面 --- */
+
+.scan-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.scan-screen h1 {
+  font-size: 30px;
+  margin: 8px 0 0;
+}
+
+.file-picker {
+  display: inline-block;
+  font-size: 22px;
+  font-weight: 700;
+  background: #fff;
+  border: 3px dashed var(--accent);
+  border-radius: 20px;
+  padding: 24px 32px;
+  cursor: pointer;
+  width: 100%;
+  max-width: 420px;
+}
+
+.file-picker input {
+  display: none;
+}
+
+.preview-image {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* --- Loading画面 --- */
+
+.loading-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.loading-emoji {
+  font-size: 64px;
+  margin: 0;
+}
+
+.loading-status {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.loading-bar {
+  width: 260px;
+  height: 16px;
+  background: #eee0cc;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.loading-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+
+.loading-percent,
+.loading-detail {
+  margin: 0;
+  color: #7a6a54;
+}
+
+/* --- Reading画面 --- */
+
+.reading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.image-overlay {
+  position: relative;
+  width: 100%;
+  line-height: 0;
+}
+
+.overlay-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.token-overlay {
+  position: absolute;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.token-overlay:active {
+  background: rgba(255, 138, 61, 0.25);
+}
+
+.token-overlay-active {
+  background: var(--highlight);
+  box-shadow: 0 0 0 3px var(--highlight);
+  opacity: 0.6;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}

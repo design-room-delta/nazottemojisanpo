@@ -1,0 +1,32 @@
+:root {
+  --bg: #fff8ef;
+  --text: #3a2e1f;
+  --accent: #ff8a3d;
+  --accent-dark: #e06b1f;
+  --highlight: #ffe066;
+  color-scheme: light;
+  font:
+    18px/1.6 'Hiragino Maru Gothic ProN', 'Yu Gothic', system-ui, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
