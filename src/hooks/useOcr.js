@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { createWorker } from 'tesseract.js'
+import { createWorker, PSM } from 'tesseract.js'
 
 const MAX_DIMENSION = 1600
 
@@ -39,6 +39,10 @@ export function useOcr() {
     })
 
     try {
+      // 絵本はイラストの中に文字が散らばっている構成が多く、
+      // デフォルトのAUTOモードだと背景を文章の一部として誤解析しやすいため、
+      // 「決まったレイアウトを仮定せず文字っぽい部分だけ探す」SPARSE_TEXTを使う。
+      await worker.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT })
       const { data } = await worker.recognize(canvas, {}, { blocks: true })
       return {
         imageDataUrl: canvas.toDataURL('image/jpeg', 0.92),
