@@ -18,8 +18,9 @@ const MIN_ABSOLUTE_HEIGHT_PX = 8
 
 // イラストの線などが「|」「-」「.」のような記号1文字に誤認識された場合、
 // それが単独でconfidence/サイズ条件を満たしてしまうことがあるため、
-// ひらがな・カタカナ・漢字・英数字・正当な句読点を含まない文字は除外する。
-const MEANINGFUL_CHAR = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}a-zA-Z0-9]/u
+// ひらがな・カタカナ・英数字・正当な句読点を含まない文字は除外する。
+// 幼児向けアプリのため漢字は対象外。
+const MEANINGFUL_CHAR = /[\p{Script=Hiragana}\p{Script=Katakana}a-zA-Z0-9]/u
 
 function isMeaningfulChar(char) {
   return BREAK_CHARS.has(char) || MEANINGFUL_CHAR.test(char)
