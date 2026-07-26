@@ -80,6 +80,33 @@ function createOcrCanvas(sourceCanvas) {
   return canvas
 }
 
+// よこがき(jpn)・たてがき(jpn_vert)のどちらかを自動判定するため、
+// 両方の言語データで解析し、Tesseractが返すページ全体のconfidenceが
+// 高い方(=文字の並び方向が合っている方)を採用する。
+const ORIENTATIONS = [
+  { lang: 'jpn', label: 'よこがき' },
+  { lang: 'jpn_vert', label: 'たてがき' },
+]
+
+async function recognizeWithLang(ocrCanvas, lang, label, onProgress) {
+  const worker = await createWorker(lang, 1, {
+    logger: (message) => {
+      onProgress(label, message)
+    },
+  })
+
+  try {
+    await worker.setParameters({
+      tessedit_pageseg_mode: PSM.AUTO,
+      tessedit_char_whitelist: CHAR_WHITELIST,
+    })
+    const { data } = await worker.recognize(ocrCanvas, {}, { blocks: true })
+    return data
+  } finally {
+    await worker.terminate()
+  }
+}
+
 export function useOcr() {
   const [progress, setProgress] = useState(0)
   const [status, setStatus] = useState('')
@@ -91,30 +118,27 @@ export function useOcr() {
     const canvas = await normalizeImage(file)
     const ocrCanvas = createOcrCanvas(canvas)
 
-    const worker = await createWorker('jpn', 1, {
-      logger: (message) => {
-        setStatus(message.status)
-        if (typeof message.progress === 'number') setProgress(message.progress)
-      },
-    })
+    let bestData = null
 
-    try {
-      // AUTO: ページ全体を解析して「文字のまとまり(ブロック)」を判定してから読む。
-      // イラストを誤ってまとまりと判定するリスクはあるが、confidence/サイズの
-      // フィルター(tokenize.js側)と組み合わせて誤読を抑える方針にする。
-      await worker.setParameters({
-        tessedit_pageseg_mode: PSM.AUTO,
-        tessedit_char_whitelist: CHAR_WHITELIST,
+    for (let i = 0; i < ORIENTATIONS.length; i++) {
+      const { lang, label } = ORIENTATIONS[i]
+      const data = await recognizeWithLang(ocrCanvas, lang, label, (currentLabel, message) => {
+        setStatus(`${currentLabel}として${message.status}`)
+        if (typeof message.progress === 'number') {
+          setProgress((i + message.progress) / ORIENTATIONS.length)
+        }
       })
-      const { data } = await worker.recognize(ocrCanvas, {}, { blocks: true })
-      return {
-        imageDataUrl: canvas.toDataURL('image/jpeg', 0.92),
-        width: canvas.width,
-        height: canvas.height,
-        blocks: data.blocks ?? [],
+
+      if (!bestData || data.confidence > bestData.confidence) {
+        bestData = data
       }
-    } finally {
-      await worker.terminate()
+    }
+
+    return {
+      imageDataUrl: canvas.toDataURL('image/jpeg', 0.92),
+      width: canvas.width,
+      height: canvas.height,
+      blocks: bestData?.blocks ?? [],
     }
   }, [])
 
