@@ -39,29 +39,51 @@ async function normalizeImage(file) {
   return canvas
 }
 
-// グレースケール化した上で、明るさの最小・最大を画像いっぱいに引き伸ばす
-// (コントラストストレッチ)。スマホ撮影は照明ムラ・影が入りやすく、
-// Tesseract内部の二値化(白黒分け)の精度を底上げできる。
+// 外れ値カット率。影・反射などごく一部の極端なピクセルに引っ張られて
+// コントラストが弱くなるのを防ぐため、上下この割合を切り捨ててから
+// 明るさの範囲を画像いっぱいに引き伸ばす(パーセンタイルクリップ)。
+const CONTRAST_CLIP_RATIO = 0.02
+
+// グレースケール化した上で、パーセンタイルクリップ済みの明るさの範囲を
+// 画像いっぱいに引き伸ばす(コントラストストレッチ)。スマホ撮影は照明ムラ・
+// 影が入りやすく、Tesseract内部の二値化(白黒分け)の精度を底上げできる。
 // 表示用画像は元のカラーのまま保つため、別canvasに対して行う。
 function enhanceContrast(context, width, height) {
   const imageData = context.getImageData(0, 0, width, height)
   const data = imageData.data
-  const luminances = new Uint8ClampedArray(width * height)
+  const totalPixels = width * height
+  const luminances = new Uint8ClampedArray(totalPixels)
+  const histogram = new Uint32Array(256)
 
-  let min = 255
-  let max = 0
   for (let i = 0; i < data.length; i += 4) {
     const luminance = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2])
-    luminances[i / 4] = luminance
-    if (luminance < min) min = luminance
-    if (luminance > max) max = luminance
+    const index = i / 4
+    luminances[index] = luminance
+    histogram[luminance] += 1
   }
 
-  const range = max - min
-  if (range === 0) return
+  const clipCount = Math.floor(totalPixels * CONTRAST_CLIP_RATIO)
+
+  let low = 0
+  let lowCount = 0
+  for (; low < 255; low++) {
+    lowCount += histogram[low]
+    if (lowCount > clipCount) break
+  }
+
+  let high = 255
+  let highCount = 0
+  for (; high > 0; high--) {
+    highCount += histogram[high]
+    if (highCount > clipCount) break
+  }
+
+  const range = high - low
+  if (range <= 0) return
 
   for (let i = 0; i < data.length; i += 4) {
-    const stretched = Math.round(((luminances[i / 4] - min) / range) * 255)
+    const normalized = ((luminances[i / 4] - low) / range) * 255
+    const stretched = Math.max(0, Math.min(255, Math.round(normalized)))
     data[i] = stretched
     data[i + 1] = stretched
     data[i + 2] = stretched
