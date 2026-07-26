@@ -5,7 +5,10 @@ const BREAK_CHARS = new Set(['。', '、', '！', '？', '!', '?', '…'])
 // イラスト部分などをTesseractが誤って文字として読んでしまった場合、
 // その誤読は確信度(confidence)が低く出る傾向があるため、閾値未満は除外する。
 // Tesseractのconfidenceは0〜100のスケール。
-const MIN_SYMBOL_CONFIDENCE = 80
+// 文字種をひらがな・カタカナ・数字・句読点のみに制限した(useOcr.js)ことで
+// 極端な誤読は起きにくくなったため、本物の文字の読み飛ばしを減らす方向に
+// 緩めている(80→65)。
+const MIN_SYMBOL_CONFIDENCE = 65
 
 // 紙の質感やノイズによる誤検出は、本文の文字サイズに比べて極端に
 // 小さいことが多いため、ページ内の文字高さの中央値に対して
@@ -28,7 +31,8 @@ function isMeaningfulChar(char) {
 
 // ノイズの行の中で、たまたま数文字だけ高confidenceになったケースを
 // 取りこぼさないよう、行内の平均confidenceが低い行はそもそも読まない。
-const MIN_LINE_AVERAGE_CONFIDENCE = 60
+// MIN_SYMBOL_CONFIDENCEと同様の理由で緩めている(60→45)。
+const MIN_LINE_AVERAGE_CONFIDENCE = 45
 
 function symbolHeight(symbol) {
   return symbol.bbox.y1 - symbol.bbox.y0
