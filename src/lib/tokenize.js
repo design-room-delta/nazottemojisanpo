@@ -12,6 +12,19 @@ const MIN_SYMBOL_CONFIDENCE = 80
 // 極端に小さいsymbolも除外する。
 const MIN_HEIGHT_RATIO = 0.5
 
+// 中央値自体がノイズに引きずられて下がるケースへの保険として、
+// 絶対的な最小ピクセル高さも設ける（画像は長辺1600pxに正規化済み）。
+const MIN_ABSOLUTE_HEIGHT_PX = 8
+
+// イラストの線などが「|」「-」「.」のような記号1文字に誤認識された場合、
+// それが単独でconfidence/サイズ条件を満たしてしまうことがあるため、
+// ひらがな・カタカナ・漢字・英数字・正当な句読点を含まない文字は除外する。
+const MEANINGFUL_CHAR = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}a-zA-Z0-9]/u
+
+function isMeaningfulChar(char) {
+  return BREAK_CHARS.has(char) || MEANINGFUL_CHAR.test(char)
+}
+
 function symbolHeight(symbol) {
   return symbol.bbox.y1 - symbol.bbox.y0
 }
@@ -38,13 +51,22 @@ export function tokenize(blocks) {
     block.paragraphs.flatMap((paragraph) => paragraph.lines),
   )
 
-  const isValidSymbol = (symbol) =>
-    symbol.text && symbol.text.trim() !== '' && symbol.confidence >= MIN_SYMBOL_CONFIDENCE
+  const isValidSymbol = (symbol) => {
+    const char = symbol.text?.trim()
+    return (
+      !!char &&
+      symbol.confidence >= MIN_SYMBOL_CONFIDENCE &&
+      isMeaningfulChar(char)
+    )
+  }
 
   const allValidSymbols = lines
     .flatMap((line) => line.words.flatMap((word) => word.symbols))
     .filter(isValidSymbol)
-  const minHeight = medianHeight(allValidSymbols) * MIN_HEIGHT_RATIO
+  const minHeight = Math.max(
+    medianHeight(allValidSymbols) * MIN_HEIGHT_RATIO,
+    MIN_ABSOLUTE_HEIGHT_PX,
+  )
 
   for (const line of lines) {
     const symbols = line.words
