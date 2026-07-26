@@ -39,10 +39,10 @@ export function useOcr() {
     })
 
     try {
-      // 絵本はイラストの中に文字が散らばっている構成が多く、
-      // デフォルトのAUTOモードだと背景を文章の一部として誤解析しやすいため、
-      // 「決まったレイアウトを仮定せず文字っぽい部分だけ探す」SPARSE_TEXTを使う。
-      await worker.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT })
+      // AUTO: ページ全体を解析して「文字のまとまり(ブロック)」を判定してから読む。
+      // イラストを誤ってまとまりと判定するリスクはあるが、confidence/サイズの
+      // フィルター(tokenize.js側)と組み合わせて誤読を抑える方針にする。
+      await worker.setParameters({ tessedit_pageseg_mode: PSM.AUTO })
       const { data } = await worker.recognize(canvas, {}, { blocks: true })
       return {
         imageDataUrl: canvas.toDataURL('image/jpeg', 0.92),
