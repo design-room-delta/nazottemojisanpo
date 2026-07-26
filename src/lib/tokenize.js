@@ -26,8 +26,18 @@ function isMeaningfulChar(char) {
   return BREAK_CHARS.has(char) || MEANINGFUL_CHAR.test(char)
 }
 
+// ノイズの行の中で、たまたま数文字だけ高confidenceになったケースを
+// 取りこぼさないよう、行内の平均confidenceが低い行はそもそも読まない。
+const MIN_LINE_AVERAGE_CONFIDENCE = 60
+
 function symbolHeight(symbol) {
   return symbol.bbox.y1 - symbol.bbox.y0
+}
+
+function averageConfidence(symbols) {
+  const withText = symbols.filter((symbol) => symbol.text && symbol.text.trim() !== '')
+  if (withText.length === 0) return 0
+  return withText.reduce((sum, symbol) => sum + symbol.confidence, 0) / withText.length
 }
 
 function medianHeight(symbols) {
@@ -70,9 +80,12 @@ export function tokenize(blocks) {
   )
 
   for (const line of lines) {
-    const symbols = line.words
-      .flatMap((word) => word.symbols)
-      .filter((symbol) => isValidSymbol(symbol) && symbolHeight(symbol) >= minHeight)
+    const rawSymbols = line.words.flatMap((word) => word.symbols)
+    if (averageConfidence(rawSymbols) < MIN_LINE_AVERAGE_CONFIDENCE) continue
+
+    const symbols = rawSymbols.filter(
+      (symbol) => isValidSymbol(symbol) && symbolHeight(symbol) >= minHeight,
+    )
 
     if (symbols.length === 0) continue
 

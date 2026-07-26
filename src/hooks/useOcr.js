@@ -39,6 +39,47 @@ async function normalizeImage(file) {
   return canvas
 }
 
+// グレースケール化した上で、明るさの最小・最大を画像いっぱいに引き伸ばす
+// (コントラストストレッチ)。スマホ撮影は照明ムラ・影が入りやすく、
+// Tesseract内部の二値化(白黒分け)の精度を底上げできる。
+// 表示用画像は元のカラーのまま保つため、別canvasに対して行う。
+function enhanceContrast(context, width, height) {
+  const imageData = context.getImageData(0, 0, width, height)
+  const data = imageData.data
+  const luminances = new Uint8ClampedArray(width * height)
+
+  let min = 255
+  let max = 0
+  for (let i = 0; i < data.length; i += 4) {
+    const luminance = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2])
+    luminances[i / 4] = luminance
+    if (luminance < min) min = luminance
+    if (luminance > max) max = luminance
+  }
+
+  const range = max - min
+  if (range === 0) return
+
+  for (let i = 0; i < data.length; i += 4) {
+    const stretched = Math.round(((luminances[i / 4] - min) / range) * 255)
+    data[i] = stretched
+    data[i + 1] = stretched
+    data[i + 2] = stretched
+  }
+
+  context.putImageData(imageData, 0, 0)
+}
+
+function createOcrCanvas(sourceCanvas) {
+  const canvas = document.createElement('canvas')
+  canvas.width = sourceCanvas.width
+  canvas.height = sourceCanvas.height
+  const context = canvas.getContext('2d')
+  context.drawImage(sourceCanvas, 0, 0)
+  enhanceContrast(context, canvas.width, canvas.height)
+  return canvas
+}
+
 export function useOcr() {
   const [progress, setProgress] = useState(0)
   const [status, setStatus] = useState('')
@@ -48,6 +89,7 @@ export function useOcr() {
     setStatus('じゅんびちゅう')
 
     const canvas = await normalizeImage(file)
+    const ocrCanvas = createOcrCanvas(canvas)
 
     const worker = await createWorker('jpn', 1, {
       logger: (message) => {
@@ -64,7 +106,7 @@ export function useOcr() {
         tessedit_pageseg_mode: PSM.AUTO,
         tessedit_char_whitelist: CHAR_WHITELIST,
       })
-      const { data } = await worker.recognize(canvas, {}, { blocks: true })
+      const { data } = await worker.recognize(ocrCanvas, {}, { blocks: true })
       return {
         imageDataUrl: canvas.toDataURL('image/jpeg', 0.92),
         width: canvas.width,
