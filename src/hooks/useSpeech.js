@@ -3,6 +3,17 @@ import { pickJapaneseVoice } from '../lib/voice'
 
 const ESTIMATED_CHARS_PER_SECOND = 6
 
+// 助詞の「は」は「わ」と発音されるが、単語の一部としての「は」はそのまま
+// 「は」と発音されるべきなので、文末・読点等の直前に来る「は」だけを
+// 「わ」に変換する(簡易的なヒューリスティックであり完全な形態素解析ではない)。
+// 「は」→「わ」は1文字対1文字の置換なので、文字位置・文字数は変化せず
+// ハイライト用のcharIndexとのズレは発生しない。
+const TOPIC_PARTICLE_HA = /は(?=[。、！？!?…]|$)/g
+
+function toSpeechText(text) {
+  return text.replace(TOPIC_PARTICLE_HA, 'わ')
+}
+
 // speechSynthesisのラップ。世代カウンタで「連続タップ」時の
 // 古いutteranceのイベント（onboundary/onend）を無視できるようにする。
 export function useSpeech() {
@@ -36,7 +47,7 @@ export function useSpeech() {
     window.speechSynthesis.cancel()
     const generation = generationRef.current
 
-    const utterance = new SpeechSynthesisUtterance(text)
+    const utterance = new SpeechSynthesisUtterance(toSpeechText(text))
     utterance.lang = 'ja-JP'
     const voice = pickJapaneseVoice()
     if (voice) utterance.voice = voice
