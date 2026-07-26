@@ -2,6 +2,10 @@ import { unionBbox } from './bbox'
 
 const BREAK_CHARS = new Set(['。', '、', '！', '？', '!', '?', '…'])
 
+// イラスト部分などをTesseractが誤って文字として読んでしまった場合、
+// その誤読は確信度(confidence)が低く出る傾向があるため、閾値以下は除外する。
+const MIN_SYMBOL_CONFIDENCE = 60
+
 // Tesseractのblocks階層（block > paragraph > line > word > symbol）から、
 // 行をまたがない「読み上げ・タップ単位」のトークン列を作る。
 // 日本語は分かち書きされないため、Tesseractの単語(word)クラスタリングは使わず、
@@ -18,7 +22,12 @@ export function tokenize(blocks) {
   for (const line of lines) {
     const symbols = line.words
       .flatMap((word) => word.symbols)
-      .filter((symbol) => symbol.text && symbol.text.trim() !== '')
+      .filter(
+        (symbol) =>
+          symbol.text &&
+          symbol.text.trim() !== '' &&
+          symbol.confidence >= MIN_SYMBOL_CONFIDENCE,
+      )
 
     if (symbols.length === 0) continue
 
